@@ -4,6 +4,8 @@ using System.Drawing.Drawing2D;
 using System.Media;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Velopack;
+using Velopack.Sources;
 
 namespace PomodoroTray
 {
@@ -18,6 +20,10 @@ namespace PomodoroTray
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool DestroyIcon(IntPtr handle);
 
+        // Public GitHub repo whose releases BuildRelease.ps1 uploads to
+        private const string RepoUrl = "https://github.com/kreaton/PomodoroTray";
+
+        private readonly UpdateManager _updateManager = new(new GithubSource(RepoUrl, accessToken: null, prerelease: false));
         private readonly NotifyIcon _trayIcon;
         private readonly System.Windows.Forms.Timer _timer;
         private readonly ToolStripMenuItem _statusItem;
@@ -46,6 +52,7 @@ namespace PomodoroTray
             menu.Items.Add(new ToolStripMenuItem("Reset", null, OnReset));
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Settings...", null, OnSettings));
+            menu.Items.Add(new ToolStripMenuItem("Check for updates...", null, OnCheckForUpdates));
             menu.Items.Add(new ToolStripMenuItem("About...", null, OnAbout));
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Exit", null, OnExit));
@@ -205,6 +212,42 @@ namespace PomodoroTray
         {
             using var form = new AboutForm();
             form.ShowDialog();
+        }
+
+        private async void OnCheckForUpdates(object? sender, EventArgs e)
+        {
+            if (!_updateManager.IsInstalled)
+            {
+                MessageBox.Show("Updates are only available in the installed app.", "Update Check", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                var newVersion = await _updateManager.CheckForUpdatesAsync();
+                if (newVersion == null)
+                {
+                    MessageBox.Show("No updates available.", "Update Check", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                var confirm = MessageBox.Show(
+                    $"A new version ({newVersion.TargetFullRelease.Version}) is available. Do you want to download and install it now?",
+                    "Update Available", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (confirm != DialogResult.Yes)
+                    return;
+
+                await _updateManager.DownloadUpdatesAsync(newVersion);
+
+                // The restart ends the process without going through OnExit, so hide the icon here
+                _trayIcon.Visible = false;
+                _updateManager.ApplyUpdatesAndRestart(newVersion);
+            }
+            catch (Exception ex)
+            {
+                _trayIcon.Visible = true;
+                MessageBox.Show($"Update failed: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         // ---------- Exit ----------
