@@ -1,8 +1,16 @@
-<img src="PomodoroTray/preview_master.png" alt="" width="96" align="right">
-
 # Pomodoro Tray
 
-A Pomodoro timer that lives in the Windows notification area. There's no window to keep open: the tray icon counts down for you and tells you when it's time for a break.
+[![Release](https://img.shields.io/github/v/release/kreaton/PomodoroTray)](https://github.com/kreaton/PomodoroTray/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+![Windows](https://img.shields.io/badge/platform-Windows-lightgrey)
+![.NET 10](https://img.shields.io/badge/.NET-10-lightgrey)
+![WinForms](https://img.shields.io/badge/UI-WinForms-lightgrey)
+
+![Pomodoro Tray: a Pomodoro timer in the notification area, with no window to keep open](images/banner.png)
+
+**A Pomodoro timer that lives in the Windows notification area.**
+
+There's no window to keep open: the tray icon counts down for you and tells you when it's time for a break.
 
 ## Install
 
