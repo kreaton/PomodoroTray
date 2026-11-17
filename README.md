@@ -24,38 +24,43 @@ To get a newer version later, right-click the icon and choose **Check for update
 
 ## How to use it
 
-Double-click the tray icon to start or pause the timer. Right-click it for everything else: the current status, **Start/Pause**, **Skip to next**, **Reset**, **Settings...**, **About...** and **Exit**.
+Double-click the tray icon to start or pause the timer. Right-click it for everything else: the current status, **Start/Pause**, **Skip to next**, **Reset**, **Settings...**, **Check for updates...**, **About...** and **Exit**.
 
-The icon shows the minutes left, and the seconds during the final minute. Its color tells you where you are:
+The icon shows the minutes left, rounded up, and the seconds during the final minute. Hover over it to see the exact time left. Its color tells you where you are:
 
 | Color | Meaning |
 |---|---|
 | Red | Work |
 | Green | Short break |
 | Blue | Long break |
-| Gray | Not started |
+| Gray | Not started, or reset |
 
-When an interval ends, a notification and a sound tell you what's next, and the next interval starts by itself. After a set number of work sessions, you get a long break instead of a short one.
+When an interval ends, a notification tells you what's next and a sound plays. The next interval then starts by itself, unless you've turned that off in Settings. After a set number of work sessions, you get a long break instead of a short one.
+
+- **Skip to next** ends the current interval right away, just as if its time had run out. A skipped work interval still counts toward the long break.
+- **Reset** stops the timer and sets it back to a full work interval.
 
 ## Settings
 
 Right-click the icon and choose **Settings...**.
 
-| Setting | Default |
-|---|---|
-| Work interval | 25 minutes |
-| Short break | 5 minutes |
-| Long break | 15 minutes |
-| Work sessions before a long break | 4 |
-| Automatically start the next interval | On |
-| Play a sound when an interval ends | On |
-| Start automatically when Windows starts | Your choice |
+| Setting | Default | Range |
+|---|---|---|
+| Work interval | 25 minutes | 1 to 180 minutes |
+| Short break | 5 minutes | 1 to 60 minutes |
+| Long break | 15 minutes | 1 to 90 minutes |
+| Work sessions before a long break | 4 | 1 to 12 |
+| Automatically start the next interval | On | |
+| Play a sound when an interval ends | On | |
+| Start automatically when Windows starts | Off | |
+
+While the timer is running, new interval lengths apply from the next interval. If it's paused or not started, the current interval starts over with its new length.
 
 ---
 
 ## For developers
 
-The app is built with WinForms on .NET 10 and only runs on Windows. Installs and updates use [Velopack](https://velopack.io). Settings are saved to `%AppData%\PomodoroTray\settings.json`.
+The app is built with WinForms on .NET 10 and only runs on Windows. Installs and updates use [Velopack](https://velopack.io). Settings are saved to `%AppData%\PomodoroTray\settings.json`. The "start with Windows" option isn't in that file: it's a `PomodoroTray` value under `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`.
 
 ### Build and run
 
@@ -67,7 +72,7 @@ dotnet run --project PomodoroTray
 
 ### Releases
 
-Every push to `main` builds the app on GitHub Actions and publishes a new release, one patch version higher than the last (`.github/workflows/release.yml`). To push without releasing, add `[skip ci]` to the commit message. You can also start a release by hand from the repository's Actions tab, or run `PomodoroTray\BuildRelease.ps1` locally. Add `-LocalOnly` to build without uploading.
+Every push to `main` builds the app on GitHub Actions and publishes a new release, one patch version higher than the last (`.github/workflows/release.yml`). To push without releasing, add `[skip ci]` to the commit message. You can also start a release by hand from the repository's Actions tab, or run `PomodoroTray\BuildRelease.ps1` locally. Add `-LocalOnly` to build without uploading. The script needs the Velopack `vpk` tool, in the same version as the Velopack package; the comment at the top of the script has the install command.
 
 The repository must stay public, because **Check for updates...** reads its releases without logging in.
 
@@ -82,6 +87,9 @@ All of these are in the `PomodoroTray` folder.
 - `PomodoroSettings.cs`: settings, loaded from and saved to JSON
 - `PomodoroPhases.cs`: the work and break phases
 - `AutoStartManager.cs`: the "start with Windows" option
+- `BuildRelease.ps1`: builds, packs and publishes a release
+
+The `tools` folder has two helper scripts for working copies that were downloaded rather than cloned. `Unblock-And-Rebuild.ps1` removes the Windows download mark (Mark of the Web) from every file, deletes the `bin` and `obj` folders and rebuilds. `MotwRemove.ps1` only lists which files in `tools` carry that mark.
 
 ## License & Authorship
 
