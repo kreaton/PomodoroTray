@@ -5,6 +5,9 @@
 ![Windows](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![.NET 10](https://img.shields.io/badge/.NET-10-lightgrey)
 ![WinForms](https://img.shields.io/badge/UI-WinForms-lightgrey)
+[![GitHub stars](https://img.shields.io/github/stars/kreaton/PomodoroTray?style=flat&logo=github&color=yellow)](https://github.com/kreaton/PomodoroTray/stargazers)
+
+⭐ If Pomodoro Tray earns a place on your machine, [star it on GitHub](https://github.com/kreaton/PomodoroTray) — it's free, made by one developer, and stars are how other people find it.
 
 ![Pomodoro Tray: a Pomodoro timer in the notification area, with no window to keep open](images/banner.png)
 
