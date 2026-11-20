@@ -17,6 +17,11 @@
     <EmbeddedResource Include="preview_master.png" />
   </ItemGroup>
 
+  <!-- Bundled transition sounds; copied next to the exe so the Velopack installer ships them -->
+  <ItemGroup>
+    <None Update="Sounds\*.wav" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Velopack" Version="1.3.39-g8d2844f" />
   </ItemGroup>

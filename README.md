@@ -38,7 +38,7 @@ The icon shows the minutes left, rounded up, and the seconds during the final mi
 | Blue | Long break |
 | Gray | Not started, or reset |
 
-When an interval ends, a notification tells you what's next and a sound plays. The next interval then starts by itself, unless you've turned that off in Settings. After a set number of work sessions, you get a long break instead of a short one.
+When an interval ends, a sound plays, and if you've turned it on in Settings, a notification tells you what's next. The next interval then starts by itself, unless you've turned that off in Settings. After a set number of work sessions, you get a long break instead of a short one.
 
 - **Skip to next** ends the current interval right away, just as if its time had run out. A skipped work interval still counts toward the long break.
 - **Reset** stops the timer and sets it back to a full work interval.
@@ -54,8 +54,12 @@ Right-click the icon and choose **Settings...**.
 | Long break | 15 minutes | 1 to 90 minutes |
 | Work sessions before a long break | 4 | 1 to 12 |
 | Automatically start the next interval | On | |
-| Play a sound when an interval ends | On | |
+| Show a notification when an interval ends | Off | |
 | Start automatically when Windows starts | Off | |
+| Play a sound when an interval ends | On | |
+| Transition sounds: work → short break, work → long break, break → work | Windows default sound | The Windows default, a sound that comes with the app, or any `.wav` file |
+
+To pick a sound, open the dropdown next to a transition. It lists the Windows default sound and the sounds that come with the app: chimes, and spoken announcements in a man's and a woman's voice (generated with [TTSMaker](https://ttsmaker.com); see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)). To use a sound of your own, click **...** and choose a `.wav` file; the file picker opens in the folder you last picked from. **▶** plays the selected sound. If a chosen file is moved or can't be played, the default sound plays instead.
 
 While the timer is running, new interval lengths apply from the next interval. If it's paused or not started, the current interval starts over with its new length.
 
@@ -88,6 +92,8 @@ All of these are in the `PomodoroTray` folder.
 - `SettingsForm.cs`: settings dialog
 - `AboutForm.cs`: about dialog
 - `PomodoroSettings.cs`: settings, loaded from and saved to JSON
+- `TransitionSound.cs`: plays the transition sounds, falling back to the Windows default
+- `Sounds`: the `.wav` files that ship with the app
 - `PomodoroPhases.cs`: the work and break phases
 - `AutoStartManager.cs`: the "start with Windows" option
 - `BuildRelease.ps1`: builds, packs and publishes a release

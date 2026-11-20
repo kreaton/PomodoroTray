@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace PomodoroTray
@@ -16,7 +17,13 @@ namespace PomodoroTray
         private readonly NumericUpDown _sessionsUpDown;
         private readonly CheckBox _autoStartCheck;
         private readonly CheckBox _soundCheck;
+        private readonly CheckBox _notificationCheck;
         private readonly CheckBox _launchAtStartupCheck;
+        private readonly GroupBox _soundsGroup;
+        private readonly SoundPicker _shortBreakSound;
+        private readonly SoundPicker _longBreakSound;
+        private readonly SoundPicker _workSound;
+        private readonly ToolTip _toolTip = new();
 
         public PomodoroSettings ResultSettings { get; private set; }
 
@@ -28,7 +35,7 @@ namespace PomodoroTray
             MaximizeBox = false;
             MinimizeBox = false;
             ShowInTaskbar = false;
-            ClientSize = new Size(340, 300);
+            ClientSize = new Size(444, 447);
             Font = new Font("Segoe UI", 9F);
 
             var layout = new TableLayoutPanel
@@ -58,14 +65,14 @@ namespace PomodoroTray
             };
             Controls.Add(_autoStartCheck);
 
-            _soundCheck = new CheckBox
+            _notificationCheck = new CheckBox
             {
-                Text = "Play a sound when an interval ends",
-                Checked = current.PlaySound,
+                Text = "Show a notification when an interval ends",
+                Checked = current.ShowNotification,
                 AutoSize = true,
                 Location = new Point(12, 192)
             };
-            Controls.Add(_soundCheck);
+            Controls.Add(_notificationCheck);
 
             _launchAtStartupCheck = new CheckBox
             {
@@ -76,11 +83,35 @@ namespace PomodoroTray
             };
             Controls.Add(_launchAtStartupCheck);
 
+            // Directly above the sounds group it switches on and off.
+            _soundCheck = new CheckBox
+            {
+                Text = "Play a sound when an interval ends",
+                Checked = current.PlaySound,
+                AutoSize = true,
+                Location = new Point(12, 246)
+            };
+            Controls.Add(_soundCheck);
+
+            _soundsGroup = new GroupBox
+            {
+                Text = "Transition sounds (.wav)",
+                Location = new Point(12, 273),
+                Size = new Size(420, 124)
+            };
+            _shortBreakSound = new SoundPicker(_soundsGroup, _toolTip, "Work → short break:", current.ShortBreakStartSound, 24);
+            _longBreakSound = new SoundPicker(_soundsGroup, _toolTip, "Work → long break:", current.LongBreakStartSound, 56);
+            _workSound = new SoundPicker(_soundsGroup, _toolTip, "Break → work:", current.WorkStartSound, 88);
+            Controls.Add(_soundsGroup);
+
+            _soundsGroup.Enabled = _soundCheck.Checked;
+            _soundCheck.CheckedChanged += (_, _) => _soundsGroup.Enabled = _soundCheck.Checked;
+
             var okButton = new Button
             {
                 Text = "OK",
                 DialogResult = DialogResult.OK,
-                Location = new Point(158, 260),
+                Location = new Point(264, 412),
                 Width = 80
             };
             okButton.Click += OnOk;
@@ -90,7 +121,7 @@ namespace PomodoroTray
             {
                 Text = "Cancel",
                 DialogResult = DialogResult.Cancel,
-                Location = new Point(246, 260),
+                Location = new Point(352, 412),
                 Width = 80
             };
             Controls.Add(cancelButton);
@@ -133,10 +164,187 @@ namespace PomodoroTray
                 LongBreakMinutes = (int)_longBreakUpDown.Value,
                 SessionsBeforeLongBreak = (int)_sessionsUpDown.Value,
                 AutoStartNext = _autoStartCheck.Checked,
-                PlaySound = _soundCheck.Checked
+                PlaySound = _soundCheck.Checked,
+                ShowNotification = _notificationCheck.Checked,
+                ShortBreakStartSound = _shortBreakSound.WavPath,
+                LongBreakStartSound = _longBreakSound.WavPath,
+                WorkStartSound = _workSound.WavPath
             };
 
             AutoStartManager.SetEnabled(_launchAtStartupCheck.Checked);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _toolTip.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// One row in the sounds group: a label, a dropdown with the Windows default sound,
+        /// the sounds that ship with the app and the user's own file, plus buttons to
+        /// choose a file of their own and to play the selected sound.
+        /// </summary>
+        /// <remarks>
+        /// The bundled sounds are listed by name because their folder sits under the
+        /// hidden AppData folder, where a casual user would never find it in a file picker.
+        /// </remarks>
+        private sealed class SoundPicker
+        {
+            private sealed class Choice(string text, string? path, string toolTip)
+            {
+                public string? Path { get; } = path;
+                public string ToolTip { get; } = toolTip;
+                public override string ToString() => text;
+            }
+
+            private readonly ComboBox _combo;
+            private readonly ToolTip _toolTip;
+            private Choice? _ownFile;
+
+            public string? WavPath => (_combo.SelectedItem as Choice)?.Path;
+
+            public SoundPicker(Control parent, ToolTip toolTip, string label, string? wavPath, int top)
+            {
+                _toolTip = toolTip;
+
+                parent.Controls.Add(new Label
+                {
+                    Text = label,
+                    AutoSize = true,
+                    Location = new Point(10, top + 4)
+                });
+
+                _combo = new ComboBox
+                {
+                    DropDownStyle = ComboBoxStyle.DropDownList,
+                    Location = new Point(140, top),
+                    Width = 200
+                };
+                _combo.Items.Add(new Choice("Windows default sound", null, "The Windows default sound"));
+                foreach (string file in BundledSounds())
+                {
+                    _combo.Items.Add(new Choice(Path.GetFileNameWithoutExtension(file), file, "Comes with Pomodoro Tray"));
+                }
+                _combo.SelectedIndexChanged += (_, _) =>
+                    _toolTip.SetToolTip(_combo, (_combo.SelectedItem as Choice)?.ToolTip);
+                parent.Controls.Add(_combo);
+
+                var browseButton = new Button { Text = "...", Location = new Point(346, top - 1), Size = new Size(30, 25) };
+                browseButton.Click += OnBrowse;
+                toolTip.SetToolTip(browseButton, "Choose a .wav file of your own");
+                parent.Controls.Add(browseButton);
+
+                var playButton = new Button { Text = "▶", Location = new Point(378, top - 1), Size = new Size(30, 25) };
+                playButton.Click += OnPlay;
+                toolTip.SetToolTip(playButton, "Play this sound");
+                parent.Controls.Add(playButton);
+
+                Select(string.IsNullOrWhiteSpace(wavPath) ? null : wavPath);
+            }
+
+            private static string[] BundledSounds()
+            {
+                try
+                {
+                    return Directory.GetFiles(TransitionSound.BundledSoundsFolder, "*.wav")
+                        .OrderBy(Path.GetFileNameWithoutExtension, StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+                }
+                catch (Exception)
+                {
+                    // Folder missing (e.g. a trimmed-down copy of the app): only the default and own files.
+                    return [];
+                }
+            }
+
+            /// <summary>Selects the matching entry, adding it as the user's own file if it isn't bundled.</summary>
+            private void Select(string? wavPath)
+            {
+                if (wavPath == null)
+                {
+                    _combo.SelectedIndex = 0;
+                    return;
+                }
+
+                foreach (Choice choice in _combo.Items)
+                {
+                    if (choice.Path != null && SamePath(choice.Path, wavPath))
+                    {
+                        _combo.SelectedItem = choice;
+                        return;
+                    }
+                }
+
+                // Only one own file per row: a newly chosen one replaces the previous one.
+                if (_ownFile != null)
+                {
+                    _combo.Items.Remove(_ownFile);
+                }
+
+                string name = Path.GetFileNameWithoutExtension(wavPath);
+                _ownFile = new Choice(
+                    File.Exists(wavPath) ? $"{name} (your file)" : $"{name} (missing)",
+                    wavPath,
+                    wavPath);
+                _combo.Items.Add(_ownFile);
+                _combo.SelectedItem = _ownFile;
+            }
+
+            private static bool SamePath(string a, string b)
+            {
+                try
+                {
+                    return string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
+                }
+                catch (Exception)
+                {
+                    return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            private void OnBrowse(object? sender, EventArgs e)
+            {
+                using var dialog = new OpenFileDialog
+                {
+                    Title = "Choose a sound",
+                    Filter = "WAV files (*.wav)|*.wav"
+                };
+
+                // Reopen the folder of the user's own file. Otherwise leave the folder unset so
+                // Windows opens wherever the user last picked a file: their sounds live in their
+                // own folders, and the bundled ones are already in the dropdown.
+                string? ownFolder = _ownFile?.Path != null ? Path.GetDirectoryName(_ownFile.Path) : null;
+                if (ownFolder != null && Directory.Exists(ownFolder))
+                {
+                    dialog.InitialDirectory = ownFolder;
+                }
+
+                if (dialog.ShowDialog(_combo.FindForm()) == DialogResult.OK)
+                {
+                    Select(dialog.FileName);
+                }
+            }
+
+            private void OnPlay(object? sender, EventArgs e)
+            {
+                string? wavPath = WavPath;
+                if (wavPath == null)
+                {
+                    TransitionSound.PlayDefault();
+                }
+                else if (!TransitionSound.TryPlayFile(wavPath))
+                {
+                    MessageBox.Show(
+                        _combo.FindForm(),
+                        $"This file can't be played:\n{wavPath}\n\nThe default sound will be used instead.",
+                        "Pomodoro Settings", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
         }
     }
 }

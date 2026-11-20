@@ -1,7 +1,6 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Media;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Velopack;
@@ -162,10 +161,18 @@ namespace PomodoroTray
 
             if (_settings.PlaySound)
             {
-                SystemSounds.Exclamation.Play();
+                TransitionSound.Play(_phase switch
+                {
+                    PomodoroPhases.ShortBreak => _settings.ShortBreakStartSound,
+                    PomodoroPhases.LongBreak => _settings.LongBreakStartSound,
+                    _ => _settings.WorkStartSound
+                });
             }
 
-            _trayIcon.ShowBalloonTip(4000, "Pomodoro Timer", message, ToolTipIcon.Info);
+            if (_settings.ShowNotification)
+            {
+                _trayIcon.ShowBalloonTip(4000, "Pomodoro Timer", message, ToolTipIcon.Info);
+            }
             UpdateDisplay();
 
             if (_settings.AutoStartNext)

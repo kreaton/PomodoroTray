@@ -17,6 +17,14 @@ namespace PomodoroTray
         public bool AutoStartNext { get; set; } = true;
         public bool PlaySound { get; set; } = true;
 
+        // Off unless the user turns it on; settings files from before this option load as off too.
+        public bool ShowNotification { get; set; }
+
+        // Full paths to .wav files played at each transition; null means the default system sound.
+        public string? ShortBreakStartSound { get; set; }
+        public string? LongBreakStartSound { get; set; }
+        public string? WorkStartSound { get; set; }
+
         private static string FilePath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "PomodoroTray",
@@ -70,7 +78,11 @@ namespace PomodoroTray
             LongBreakMinutes = LongBreakMinutes,
             SessionsBeforeLongBreak = SessionsBeforeLongBreak,
             AutoStartNext = AutoStartNext,
-            PlaySound = PlaySound
+            PlaySound = PlaySound,
+            ShowNotification = ShowNotification,
+            ShortBreakStartSound = ShortBreakStartSound,
+            LongBreakStartSound = LongBreakStartSound,
+            WorkStartSound = WorkStartSound
         };
     }
 }
